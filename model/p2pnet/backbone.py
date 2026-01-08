@@ -9,9 +9,10 @@ import torch.nn.functional as F
 import torchvision
 from torch import nn
 
-import models.vgg_ as models
+from vgg import *
 
-class BackboneBase_VGG(nn.Module):
+
+class BackboneBaseVGG(nn.Module):
     def __init__(self, backbone: nn.Module, num_channels: int, name: str, return_interm_layers: bool):
         super().__init__()
         features = list(backbone.features.children())
@@ -49,20 +50,21 @@ class BackboneBase_VGG(nn.Module):
         return out
 
 
-class Backbone_VGG(BackboneBase_VGG):
+class BackboneVGG(BackboneBaseVGG):
     """ResNet backbone with frozen BatchNorm."""
     def __init__(self, name: str, return_interm_layers: bool):
         if name == 'vgg16_bn':
-            backbone = models.vgg16_bn(pretrained=True)
+            backbone = vgg16_bn(pretrained=True)
         elif name == 'vgg16':
-            backbone = models.vgg16(pretrained=True)
+            backbone = vgg16(pretrained=True)
         num_channels = 256
         super().__init__(backbone, num_channels, name, return_interm_layers)
 
 
 def build_backbone(args):
-    backbone = Backbone_VGG(args.backbone, True)
+    backbone = BackboneVGG(args.backbone, True)
     return backbone
 
+
 if __name__ == '__main__':
-    Backbone_VGG('vgg16', True)
+    BackboneVGG('vgg16', True)

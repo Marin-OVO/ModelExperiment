@@ -1,5 +1,6 @@
 # Ignore specific generated / large directories
 .idea/
+data/
 
 # Common Python ignores
 __pycache__/

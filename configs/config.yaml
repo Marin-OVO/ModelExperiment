@@ -1,0 +1,17 @@
+
+training_settings:
+  batch_size: 16
+  optimizer: 'adam'
+  lr: 3e-4
+  weight_decay: 1e-3
+  print_freq: 5
+  epochs: 50
+
+val_settings:
+  batch_size: 1
+  select_mode: 'max'
+  validate_on: 'f1_score'
+  checkpoint: 'best'
+  lmds_kwargs:
+    kernel_size: [3,3]
+    adapt_ts: 0.1

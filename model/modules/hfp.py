@@ -8,7 +8,8 @@ from utils import *
 
 class HighFrequencyGenerator(nn.Module):
     """
-        DCT + High-Pass Filter + iDCT
+        DCT + High-Pass Filter + iDCT + CP/SP
+        α‌ = 0, Fi = Ci; α‌ = 1, Fi = 0;
     """
     def __init__(self, alpha=0.2):
         super().__init__()
@@ -129,9 +130,7 @@ class HFP(nn.Module):
 #     transform = T.ToTensor()
 #     x = transform(img).unsqueeze(0).to(device)
 #
-#     model = HighFrequencyGenerator(
-#         alpha=0.1
-#     ).to(device)
+#     model = HighFrequencyGenerator(alpha=0.1).to(device)
 #
 #     with torch.no_grad():
 #         y = model(x)
@@ -140,19 +139,14 @@ class HFP(nn.Module):
 #     y_np = y[0, 0].cpu().numpy()
 #
 #     plt.figure(figsize=(10, 4))
-#     plt.subplot(1, 3, 1)
+#     plt.subplot(1, 2, 1)
 #     plt.title("Input")
 #     plt.imshow(x_np, cmap="gray")
 #     plt.axis("off")
 #
-#     plt.subplot(1, 3, 2)
+#     plt.subplot(1, 2, 2)
 #     plt.title("Filtered")
 #     plt.imshow(y_np, cmap="gray")
-#     plt.axis("off")
-#
-#     plt.subplot(1, 3, 3)
-#     plt.title("High-frequency (|Δ|)")
-#     plt.imshow(abs(y_np - x_np), cmap="gray")
 #     plt.axis("off")
 #
 #     plt.tight_layout()

@@ -2,15 +2,17 @@ import sys
 
 from typing import Callable, Optional
 
+
 class Registry:
-    ''' Registry to map str to classes. Object can then be
+    """
+        Registry to map str to classes. Object can then be
         called from the registry
 
         Args:
             name (str): registry name.
             module_key (str, optional): module key, used for updating its __all__ variable.
                 Defaults to None.
-        '''
+    """
 
     def __init__(self, name: str, module_key: Optional[str] = None) -> None:
         self.name = name

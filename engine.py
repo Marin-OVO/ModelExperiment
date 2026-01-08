@@ -10,12 +10,13 @@ from typing import Iterable
 
 import torch
 
-import util.misc as utils
-from util.misc import NestedTensor
+import utils.misc as utils
+from utils.misc import NestedTensor
 import numpy as np
 import time
 import torchvision.transforms as standard_transforms
 import cv2
+
 
 class DeNormalize(object):
     def __init__(self, mean, std):
@@ -27,12 +28,13 @@ class DeNormalize(object):
             t.mul_(s).add_(m)
         return tensor
 
+
 def vis(samples, targets, pred, vis_dir, des=None):
-    '''
-    samples -> tensor: [batch, 3, H, W]
-    targets -> list of dict: [{'points':[], 'image_id': str}]
-    pred -> list: [num_preds, 2]
-    '''
+    """
+        samples -> tensor: [batch, 3, H, W]
+        targets -> list of dict: [{'points':[], 'image_id': str}]
+        pred    -> list: [num_preds, 2]
+    """
     gts = [t['point'].tolist() for t in targets]
 
     pil_to_tensor = standard_transforms.ToTensor()

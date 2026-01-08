@@ -1,27 +1,30 @@
 import os
 
-# This script generates the standard '.list' file.
-# Note: The directory structure is as follows:
-# img/    - Contains image files (e.g., .png)
-# txts/   - Contains text files with annotations
-# Ensure that the label directory does not contain '.jpg' images to avoid losing point annotations.
 
 def main():
-    # train_images = r'D:\PHD_learning\crowd_recognition\datasets\application\merged_data_copy\train\img_aug'
-    test_images = r'D:\WorkSpace\TongJi_Learning\CrowdSat\enhanced_crowdsat\train\img_aug_rename'
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    root_dir = os.path.abspath(os.path.join(base_dir, '..'))
 
-    # train_txt_path = r'D:\PHD_learning\crowd_recognition\datasets\application\merged_data_copy\crowd_train.list'
-    test_txt_path = r'D:\WorkSpace\TongJi_Learning\CrowdSat\CrowdSat-Net-master\data\crowdsat\crowd_train.list'
+    train_images = os.path.join(root_dir, 'data/enhanced_crowdsat/train/img_aug_rename')
+    val_images = os.path.join(root_dir, 'data/enhanced_crowdsat/val/img')
 
-    image_files = os.listdir(test_images)
+    train_txt_path = os.path.join(root_dir, 'data/crowdsat/crowd_train.list')
+    val_txt_path = os.path.join(root_dir, 'data/crowdsat/crowd_val.list')
+
+    os.makedirs(os.path.dirname(train_txt_path), exist_ok=True)
+    os.makedirs(os.path.dirname(val_txt_path), exist_ok=True)
+
+    image_files = os.listdir(train_images)
     image_files.sort()
-
-
-    list_file = open(test_txt_path, 'w')
-
+    list_file = open(train_txt_path, 'w')
     for train_img in image_files:
-        list_file.write(f"{os.path.join(test_images, train_img)} {os.path.join(test_images.replace('img', 'txts'), train_img.replace('.png', '.txt'))}\n")
+        list_file.write(f"{os.path.join(train_images, train_img)} {os.path.join(train_images.replace('img', 'txts'), train_img.replace('.png', '.txt'))}\n")
 
+    image_files = os.listdir(val_images)
+    image_files.sort()
+    list_file = open(val_txt_path, 'w')
+    for train_img in image_files:
+        list_file.write(f"{os.path.join(val_images, train_img)} {os.path.join(val_images.replace('img', 'txts'), train_img.replace('.png', '.txt'))}\n")
 
 if __name__ == '__main__':
     main()
