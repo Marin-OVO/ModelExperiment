@@ -10,7 +10,7 @@ from model import UNet
 from datasets import CrowdDataset
 from utils.metrics import PointsMetrics
 from utils.main import train_one_epoch, val_one_epoch
-from utils.logger import setup_default_logging
+from utils.logger import setup_default_logging, time_str
 import albumentations as A
 from datasets.transforms import Normalize, PointsToMask
 
@@ -23,7 +23,7 @@ def args_parser():
     parser.add_argument('--num_classes', default=2, type=int)
 
     parser.add_argument('--epoch', default=150, type=int, metavar='N')
-    parser.add_argument('--batch_size', default=8, type=int, metavar='N')
+    parser.add_argument('--batch_size', default=2, type=int, metavar='N')
     parser.add_argument('--lr', default=0.0003, type=float)
     parser.add_argument('--weight_decay', default=1e-4, type=float)
 
@@ -59,13 +59,17 @@ def main(args):
 
     device = torch.device(args.device if torch.cuda.is_available() else 'cpu')
     os.makedirs(args.output_dir, exist_ok=True)
-    logger, timestr = setup_default_logging('training', args.output_dir)
 
-    work_dir = os.path.join(args.output_dir, f'run_{timestr}')
+    timestr = time_str()
+    work_dir = os.path.join(args.output_dir, f'run_{timestr}'.format(timestr))
     os.makedirs(work_dir, exist_ok=True)
 
+    logger_path = os.path.join(work_dir, 'log')
+    os.makedirs(logger_path, exist_ok=True)
+
+    logger, timestr = setup_default_logging('training', logger_path)
     # save csv
-    csv_path = os.path.join(work_dir, 'training_log.csv')
+    csv_path = os.path.join(logger_path, 'training_log.csv')
 
     logger.info('=' * 60)
     logger.info('Training Configuration:')
@@ -169,7 +173,6 @@ def main(args):
             model=model,
             val_dataloader=val_dataloader,
             epoch=epoch + 1,
-            device=device,
             metrics=metrics,
             args=args
         )

@@ -1,11 +1,13 @@
 # Ignore specific generated / large directories
 .idea/
 data/
+weights/
 
 # Common Python ignores
 __pycache__/
 *.py[cod]
 *.pth
+*.log
 .env
 
 

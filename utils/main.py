@@ -59,7 +59,7 @@ def train_one_epoch(
 
         if step in print_freq_lst:
             logger.info(
-                "Epoch/Iter [{}:{:3}/{:3}].  "
+                "[Epoch:{}/{:3}][Iter:{:5}].  "
                 "First:{first_order_loss.val:.3f}({first_order_loss.avg:.3f})  "
                 "Second:{second_order_loss.val:.3f}({second_order_loss.avg:.3f})  "
                 "Loss:{losses.val:.3f}({losses.avg:.3f})  ".format(
