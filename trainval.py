@@ -68,6 +68,7 @@ def main(args):
     os.makedirs(logger_path, exist_ok=True)
 
     logger, timestr = setup_default_logging('training', logger_path)
+
     # save csv
     csv_path = os.path.join(logger_path, 'training_log.csv')
 

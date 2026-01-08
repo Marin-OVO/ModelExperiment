@@ -20,7 +20,6 @@ class Registry:
         self._registered_objects = {}
 
     def register(self) -> Callable:
-        "register a class"
 
         def _register(cls):
             self._registered_objects[cls.__name__] = cls

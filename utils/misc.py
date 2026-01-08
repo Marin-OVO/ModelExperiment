@@ -3,7 +3,7 @@
 Misc functions, including distributed helpers.
 Mostly copy-paste from torchvision references.
 
-P2PNet
+from P2PNet
 """
 import os
 import subprocess
