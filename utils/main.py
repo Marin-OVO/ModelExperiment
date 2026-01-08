@@ -115,8 +115,10 @@ def val_one_epoch(
             labels=gt_labels
         )
 
-        lmds = LMDS(kernel_size=args.kernel_size,
-                    adapt_ts=args.adapt_ts)
+        lmds = LMDS(
+            kernel_size=args.lmds_kernel_size,
+            adapt_ts=args.lmds_adapt_ts
+        )
 
         counts, locs, labels, scores = lmds(output)
 
