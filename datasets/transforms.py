@@ -160,6 +160,7 @@ class DownSample:
         return img, target
 
 
+# 扩大点的范围
 @TRANSFORMS.register()
 class PointsToMask:
     "Convert points annotation to mask with a buffer option"

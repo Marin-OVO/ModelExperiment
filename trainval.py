@@ -124,7 +124,6 @@ def main(args):
         shuffle = True,
         pin_memory=True
     )
-
     val_dataloader = DataLoader(
         dataset = val_dataset,
         batch_size = 1,
@@ -183,18 +182,18 @@ def main(args):
         if select == 'min':
             if tmp_results[validate_on] < best_val:
                 best_val = tmp_results[validate_on]
-                best_epoch = epoch
+                best_epoch = epoch + 1
                 is_best = True
 
         elif select == 'max':
             if tmp_results[validate_on] > best_val:
                 best_val = tmp_results[validate_on]
-                best_epoch = epoch
+                best_epoch = epoch + 1
                 is_best = True
 
         # Save checkpoints
         state = {
-            'epoch': epoch,
+            'epoch': epoch + 1,
             'model_state_dict': model.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
             'scheduler_state_dict': lr_scheduler.state_dict(),
@@ -207,7 +206,7 @@ def main(args):
             if is_best:
                 outpath = os.path.join(work_dir, 'best_model.pth')
                 torch.save(state, outpath)
-                logger.info(f'✓ Saved best model to {outpath}')
+                logger.info(f'Saved best model to {outpath}')
         elif checkpoints == 'latest':
             outpath = os.path.join(work_dir, 'latest_model.pth')
             torch.save(state, outpath)
@@ -232,11 +231,11 @@ def main(args):
 
         # Log validation results with color
         logger.info(
-            f"{Fore.CYAN}<<Test>>{Style.RESET_ALL} - "
-            f"Epoch: {Fore.CYAN}{epoch}{Style.RESET_ALL}.  "
-            f"{Fore.BLUE}{validate_on}{Style.RESET_ALL}: {Fore.GREEN}{tmp_results[validate_on]:.4f}{Style.RESET_ALL}.  "
-            f"{Fore.BLUE}Best-Val:{Style.RESET_ALL}{Fore.RED}{best_val:.4f}{Style.RESET_ALL}  "
-            f"{Fore.BLUE}Best-Epoch:{Style.RESET_ALL}{Fore.RED}{best_epoch}{Style.RESET_ALL}"
+            f"<<Test>> - \n"
+            f"Epoch: {epoch + 1}.  "
+            f"{validate_on}: {tmp_results[validate_on]:.4f}.  "
+            f"Best-Val: {best_val:.4f}.  "
+            f"Best-Epoch: {best_epoch:.4f}"
         )
 
         lr_scheduler.step()

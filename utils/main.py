@@ -1,14 +1,14 @@
 import time
-
-from utils.lmds import LMDS
 from typing import Optional, Union
-from .logger import *
-from .averager import *
 
+import numpy as np
 import torch
 import torch.nn as nn
 
-import numpy as np
+from utils.lmds import LMDS
+from .logger import *
+from .averager import *
+from .loss import *
 
 
 def train_one_epoch(
@@ -21,6 +21,7 @@ def train_one_epoch(
         print_freq: int,
         args
         ) -> float:
+
     # metric indicators
     first_order_loss = AverageMeter(20)
     second_order_loss = AverageMeter(20)
@@ -36,17 +37,20 @@ def train_one_epoch(
 
     model.train()
 
-    criterion = nn.CrossEntropyLoss()
+    # FocalLoss
+    criterion = FocalLoss2(reduction="mean")
     for step, (images, targets) in enumerate(train_dataloader):
 
         images = images.to(device)
 
+        # 训练输出
         outputs = model(images)
 
         gt_mask = targets.to(device).long()
         if gt_mask.dim() == 4:
             gt_mask = gt_mask.squeeze(1)
 
+        # L1 -> UNet模型二分类预测损失
         loss = criterion(outputs, gt_mask)
 
         first_order_loss.update(loss.item())
@@ -59,11 +63,11 @@ def train_one_epoch(
 
         if step in print_freq_lst:
             logger.info(
-                "[Epoch:{}/{:3}][Iter:{:5}].  "
+                "[Epoch:{:3}/{}][Iter:{:5}].  "
                 "First:{first_order_loss.val:.3f}({first_order_loss.avg:.3f})  "
                 "Second:{second_order_loss.val:.3f}({second_order_loss.avg:.3f})  "
                 "Loss:{losses.val:.3f}({losses.avg:.3f})  ".format(
-                    args.epoch, epoch, step,
+                    epoch, args.epoch, step,
                     first_order_loss=first_order_loss,
                     second_order_loss=second_order_loss,
                     losses=losses,
@@ -76,12 +80,12 @@ def train_one_epoch(
     batch_times.update(batch_end-batch_start)
 
     logger.info(
-        "Epoch [{}].  "
+        "[Epoch:{:3}/{}].  "
         "First:{first_order_loss.val:.3f}({first_order_loss.avg:.3f})  "
         "Second:{second_order_loss.val:.3f}({second_order_loss.avg:.3f})  "
         "Loss:{losses.val:.3f}({losses.avg:.3f})  "
         "Time:{batch_times.avg:.2f}  ".format(
-            args.epoch,
+            epoch, args.epoch,
             first_order_loss=first_order_loss,
             second_order_loss=second_order_loss,
             losses=losses,
@@ -99,6 +103,7 @@ def val_one_epoch(
         metrics: object,
         args
         ) -> Union[float, torch.Tensor]:
+
     metrics.flush()
 
     iter_metrics = metrics.copy()
@@ -107,10 +112,20 @@ def val_one_epoch(
 
     for step, (images, targets) in enumerate(val_dataloader):
         images = images.cuda()
+
+        # 验证输出
         output = model(images)
 
-        gt_coords = [p[::-1] for p in targets['points'].squeeze(0).tolist()]
-        gt_labels = targets['labels'].squeeze(0).tolist()
+        points = targets['points']
+        labels = targets['labels']
+
+        if isinstance(points, torch.Tensor):
+            points = points.squeeze(0).tolist()
+        if isinstance(labels, torch.Tensor):
+            labels = labels.squeeze(0).tolist()
+
+        gt_coords = [(p[1], p[0]) for p in points]
+        gt_labels = labels
 
         gt = dict(
             loc=gt_coords,

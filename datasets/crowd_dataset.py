@@ -1,16 +1,18 @@
-
-import numpy as np
-import torch
 import os
+import numpy
+from copy import deepcopy
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 import PIL
 from PIL import Image
-import numpy
+
+import torch
+import torch.nn as nn
+from torch.utils.data import Dataset, DataLoader
+
 import albumentations
 from torchvision import transforms
-from torch.utils.data import Dataset, DataLoader
-import albumentations as A
-from typing import Any, Dict, List, Optional, Tuple, Union
-from copy import deepcopy
+
 from datasets.register import DATASETS
 from datasets.transforms import *
 
@@ -143,6 +145,7 @@ class CrowdDataset(Dataset):
 
             return tr_image, tr_target
         else:
+            img = self.to_tensor(img)
             return img, target
 
 
