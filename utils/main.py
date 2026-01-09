@@ -38,7 +38,7 @@ def train_one_epoch(
     model.train()
 
     # FocalLoss
-    criterion = FocalLoss2(reduction="mean")
+    criterion = FocalLoss(reduction="mean", normalize=True)
     for step, (images, targets) in enumerate(train_dataloader):
 
         images = images.to(device)
@@ -47,8 +47,8 @@ def train_one_epoch(
         outputs = model(images)
 
         gt_mask = targets.to(device).long()
-        if gt_mask.dim() == 4:
-            gt_mask = gt_mask.squeeze(1)
+        # if gt_mask.dim() == 4:
+        #     gt_mask = gt_mask.squeeze(1)
 
         # L1 -> UNet模型二分类预测损失
         loss = criterion(outputs, gt_mask)
@@ -63,10 +63,10 @@ def train_one_epoch(
 
         if step in print_freq_lst:
             logger.info(
-                "[Epoch:{:3}/{}][Iter:{:5}].  "
-                "First:{first_order_loss.val:.3f}({first_order_loss.avg:.3f})  "
+                "[Epoch: {:3}/{}][Iter: {:5}].  "
+                "[First:{first_order_loss.val:.3f}({first_order_loss.avg:.3f})  "
                 "Second:{second_order_loss.val:.3f}({second_order_loss.avg:.3f})  "
-                "Loss:{losses.val:.3f}({losses.avg:.3f})  ".format(
+                "Loss:{losses.val:.3f}({losses.avg:.3f})]  ".format(
                     epoch, args.epoch, step,
                     first_order_loss=first_order_loss,
                     second_order_loss=second_order_loss,
@@ -81,9 +81,9 @@ def train_one_epoch(
 
     logger.info(
         "[Epoch:{:3}/{}].  "
-        "First:{first_order_loss.val:.3f}({first_order_loss.avg:.3f})  "
+        "[First:{first_order_loss.val:.3f}({first_order_loss.avg:.3f})  "
         "Second:{second_order_loss.val:.3f}({second_order_loss.avg:.3f})  "
-        "Loss:{losses.val:.3f}({losses.avg:.3f})  "
+        "Loss:{losses.val:.3f}({losses.avg:.3f})]  "
         "Time:{batch_times.avg:.2f}  ".format(
             epoch, args.epoch,
             first_order_loss=first_order_loss,
@@ -119,12 +119,25 @@ def val_one_epoch(
         points = targets['points']
         labels = targets['labels']
 
-        if isinstance(points, torch.Tensor):
-            points = points.squeeze(0).tolist()
+        # if step == 0:
+        #     print(type(points))
+        #     print(np.array(points).shape)
+
+        # if isinstance(points, torch.Tensor):
+        #     points = points.squeeze(0).tolist()
+
         if isinstance(labels, torch.Tensor):
             labels = labels.squeeze(0).tolist()
 
-        gt_coords = [(p[1], p[0]) for p in points]
+        points = np.asarray(points)
+        # (N, 2, 1) -> (N, 2)
+        if points.ndim == 3 and points.shape[-1] == 1:
+            points = points.squeeze(-1)
+
+        assert points.ndim == 2 and points.shape[1] == 2, \
+            f"Invalid GT points shape: {points.shape}"
+
+        gt_coords = [(int(p[1]), int(p[0])) for p in points]
         gt_labels = labels
 
         gt = dict(
@@ -132,15 +145,24 @@ def val_one_epoch(
             labels=gt_labels
         )
 
+        # int -> (tuple)
+        ks = args.lmds_kernel_size
+        if isinstance(ks, int):
+            ks = (ks, ks)
+
         lmds = LMDS(
-            kernel_size=args.lmds_kernel_size,
+            kernel_size=ks,
             adapt_ts=args.lmds_adapt_ts
         )
 
         counts, locs, labels, scores = lmds(output)
 
+        locs_pred = np.asarray(locs[0])
+        if locs_pred.ndim == 3 and locs_pred.shape[-1] == 1:
+            locs_pred = locs_pred.squeeze(-1)
+
         preds = dict(
-            loc=locs[0],
+            loc=locs_pred,
             labels=labels[0],
             scores=scores[0],
         )

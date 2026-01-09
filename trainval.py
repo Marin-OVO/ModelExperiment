@@ -26,6 +26,8 @@ def args_parser():
     parser.add_argument('--batch_size', default=8, type=int, metavar='N')
     parser.add_argument('--lr', default=0.0003, type=float)
     parser.add_argument('--weight_decay', default=1e-4, type=float)
+    parser.add_argument('--ptm_down_ratio', default=1, type=int)
+
 
     parser.add_argument('--bilinear', default=True, type=bool)
 
@@ -76,7 +78,7 @@ def main(args):
     logger.info('Training Configuration:')
     for arg, value in vars(args).items():
         logger.info(f'{arg}: {value}')
-    logger.info('=' * 60)
+        #logger.info('=' * 60)
 
     model = UNet(num_ch=3, num_class=args.num_classes, bilinear=args.bilinear)
     model.to(device)
@@ -94,10 +96,10 @@ def main(args):
     )
 
     train_albu_transforms = [A.HorizontalFlip(p=0.5), A.VerticalFlip(p=0.5)]
-    train_end_transforms = [Normalize(), PointsToMask(radius=args.radius, num_classes=args.num_classes, squeeze=True)]
+    train_end_transforms = [Normalize(), PointsToMask(radius=args.radius, num_classes=args.num_classes, squeeze=False, down_ratio=args.ptm_down_ratio)]
 
     val_albu_transforms = []
-    val_end_transforms = [Normalize(), PointsToMask(radius=args.radius, num_classes=args.num_classes, squeeze=True)]
+    val_end_transforms = [Normalize(), PointsToMask(radius=args.radius, num_classes=args.num_classes, squeeze=False, down_ratio=args.ptm_down_ratio)]
 
     train_dataset = CrowdDataset(
         data_root=args.data_root,
@@ -115,8 +117,14 @@ def main(args):
         albu_transforms=val_albu_transforms,
         end_transforms=val_end_transforms
     )
+    total_params = sum(p.numel() for p in model.parameters())
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+
     logger.info(f'Train dataset size: {len(train_dataset)}')
     logger.info(f'Val dataset size: {len(val_dataset)}')
+
+    logger.info(f'Total parameters: {total_params / 1e6:.2f} M')
+    logger.info(f'Trainable parameters: {trainable_params / 1e6:.2f} M')
 
     train_dataloader = DataLoader(
         dataset = train_dataset,
@@ -155,7 +163,7 @@ def main(args):
     for epoch in range(last_epoch, args.epoch):
         logger.info('=' * 60)
         logger.info(f'Epoch {epoch + 1}/{args.epoch}')
-        logger.info('=' * 60)
+        # logger.info('=' * 60)
 
         # Train
         loss = train_one_epoch(
@@ -229,13 +237,13 @@ def main(args):
         else:
             data_frame.to_csv(csv_path, mode='a', header=False, index_label='epoch')
 
-        # Log validation results with color
+        # Log validation results
         logger.info(
-            f"<<Test>> - \n"
-            f"Epoch: {epoch + 1}.  "
-            f"{validate_on}: {tmp_results[validate_on]:.4f}.  "
-            f"Best-Val: {best_val:.4f}.  "
-            f"Best-Epoch: {best_epoch:.4f}"
+            f"<<Test>>\n"
+            f"Epoch: {epoch + 1:3}.  "
+            f"{validate_on}: {tmp_results[validate_on]:6.3f}.  "
+            f"Best-Val: {best_val:6.3f}.  "
+            f"Best-Epoch: {best_epoch:3}"
         )
 
         lr_scheduler.step()
