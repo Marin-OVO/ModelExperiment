@@ -7,6 +7,8 @@ LOSSES = Registry('losses')
 
 
 # heatmap (B, C, H, W)
+# GT     -> dense mask [0, 1]
+# output -> heatmap [0, 1] **not logits
 @LOSSES.register()
 class FocalLoss(torch.nn.Module):
 

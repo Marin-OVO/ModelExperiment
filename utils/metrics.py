@@ -454,6 +454,7 @@ class Metrics:
         else:
             self.detections.append({'images': self.idx, **counts})
 
+
 @METRICS.register()
 class PointsMetrics(Metrics):
     """

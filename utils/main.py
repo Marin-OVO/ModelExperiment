@@ -52,9 +52,10 @@ def train_one_epoch(
         images = images.to(device)
 
         # train results
-        outputs = model(images)
+        outputs = model(images)             # (B, 2, H, W) logits
+        outputs = torch.sigmoid(outputs)    # Must heatmap -> FocalLoss()(Now UNet -> logits)
 
-        gt_mask = targets.to(device).long()
+        gt_mask = targets.to(device).long() # (B, 2, H, W)
 
         # if gt_mask.dim() == 4:
         #     gt_mask = gt_mask.squeeze(1)
@@ -73,9 +74,9 @@ def train_one_epoch(
         if step in print_freq_lst:
             logger.info(
                 "Epoch [{:^3}/{:<3}] | Iter {:^5} | LR {:.6f} | "
-                "First {:.3f}({:.3f}) | "
+                "First {:^6.3f}({:^6.3f}) | "
                 "Second {:.3f}({:.3f}) | "
-                "Total {:.3f}({:.3f})".format(
+                "Total {:^6.3f}({:^6.3f})".format(
                     epoch, args.epoch,
                     step, lr,
                     first_order_loss.val, first_order_loss.avg,
@@ -130,7 +131,8 @@ def val_one_epoch(
         images = images.cuda()
 
         # val results
-        output = model(images)
+        outputs = model(images)
+        outputs = torch.sigmoid(outputs)
 
         points = targets['points']
         labels = targets['labels']
@@ -176,7 +178,7 @@ def val_one_epoch(
             adapt_ts=args.lmds_adapt_ts
         )
 
-        counts, locs, labels, scores = lmds(output)
+        counts, locs, labels, scores = lmds(outputs)
 
         locs_pred = np.asarray(locs[0])
         if locs_pred.ndim == 3 and locs_pred.shape[-1] == 1:

@@ -52,7 +52,7 @@ def args_parser():
     parser.add_argument('--radius', default=2, type=int)
     parser.add_argument('--ptm_down_ratio', default=1, type=int)
     parser.add_argument('--lmds_kernel_size', default=3, type=int)
-    parser.add_argument('--lmds_adapt_ts', default=0.5, type=float)
+    parser.add_argument('--lmds_adapt_ts', default=0.1, type=float)
     parser.add_argument('--ds_down_ratio', default=1, type=int)
     parser.add_argument('--ds_crowd_type', default='point', type=str)
 
@@ -91,6 +91,7 @@ def main(args):
         #logger.info('=' * 60)
 
     model = UNet(num_ch=3, num_class=args.num_classes, bilinear=args.bilinear)
+    # output: (B, 2, H, W)
     model.to(device)
     logger.info(f'Model created and moved to {device}')
 
@@ -136,7 +137,8 @@ def main(args):
         val_list="crowd_val.list",
         albu_transforms=train_albu_transforms,
         end_transforms=train_end_transforms
-    )
+    ) # image: (3, H, W)
+      # gt   : (1, H, W) hard disk mask / UNet
     val_dataset = CrowdDataset(
         data_root=args.data_root,
         train=False,
@@ -160,7 +162,8 @@ def main(args):
         shuffle = True,
         pin_memory=True,
         num_workers=args.num_worker
-    )
+    ) # image: (B, 3, H, W)
+      # gt   : (B, 1, H, W) / UNet
     val_dataloader = DataLoader(
         dataset = val_dataset,
         batch_size = 1,

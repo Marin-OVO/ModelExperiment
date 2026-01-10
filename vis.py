@@ -23,7 +23,7 @@ def args_parser():
     parser.add_argument('--device', default='cuda', type=str)
 
     # path
-    parser.add_argument("--img_path", default="red_square.png", type=str)
+    parser.add_argument("--img_path", default="data/enhanced_crowdsat/val/img/1.png", type=str)
     parser.add_argument("--output_path", default="vis", type=str)
     parser.add_argument("--checkpoint_path", default="weights/best_model.pth", type=str)
 

@@ -246,12 +246,12 @@ class PointsToMask:
             mask = self._onehot(mask)
 
         if self.squeeze:
-            mask = mask.squeeze(0)
+            mask = mask.squeeze(0) # (H, W)
 
         if self.target_type == 'float':
             mask = mask.float()
 
-        return image, mask
+        return image, mask # -> hard disk mask (1, H, W)
 
     def _onehot(self, mask: torch.Tensor):
         onehot_mask = torch.nn.functional.one_hot(mask, self.num_classes + 1)
