@@ -12,7 +12,7 @@ from utils.metrics import PointsMetrics
 from utils.main import train_one_epoch, val_one_epoch
 from utils.logger import setup_default_logging, time_str
 import albumentations as A
-from datasets.transforms import Normalize, PointsToMask
+from datasets.transforms import Normalize, PointsToMask, DownSample
 
 
 # trainval
@@ -23,38 +23,45 @@ def args_parser():
     parser.add_argument('--data_root', default='data/crowdsat', type=str)
     parser.add_argument('--num_classes', default=2, type=int)
 
+    # training parameters
     parser.add_argument('--epoch', default=150, type=int, metavar='N')
     parser.add_argument('--batch_size', default=8, type=int, metavar='N')
     parser.add_argument('--lr', default=0.0003, type=float)
-    parser.add_argument('--num_worker', default=6, type=int)
     parser.add_argument('--weight_decay', default=1e-4, type=float)
-    parser.add_argument('--ptm_down_ratio', default=1, type=int)
-
+    parser.add_argument('--num_worker', default=6, type=int)
 
     parser.add_argument('--bilinear', default=True, type=bool)
 
-    parser.add_argument('--output_dir', default='weights', type=str,)
-    parser.add_argument('--save', default=None, type=str,)
-    parser.add_argument('--print_freq', default=8, type=int)
-
+    # device
     parser.add_argument('--device', default='cuda', type=str)
 
-    # val
-    parser.add_argument('--radius', default=2, type=int)
-    parser.add_argument('--lmds_kernel_size', default=3, type=int)
-    parser.add_argument('--lmds_adapt_ts', default=0.5, type=float)
+    # logging
+    parser.add_argument('--output_path', default='weights', type=str)
+    parser.add_argument('--save', default=None, type=str)
+    parser.add_argument('--print_freq', default=8, type=int)
+
+    # val/checkpoint strategy
     parser.add_argument('--checkpoint', default='best', type=str,
                         choices=['best', 'all', 'latest'])
     parser.add_argument('--select_mode', default='max', type=str,
                         choices=['min', 'max'])
-    parser.add_argument('--validate_on', default='mAP', type=str)
+    parser.add_argument('--validate_on', default='f1_score', type=str,
+                        choices=['f1_score', 'recall', 'precision', 'accuracy', 'mAP'])
+
+    # dataset processing settings(*ptm/ds, dense map -> HxW)
+    parser.add_argument('--radius', default=2, type=int)
+    parser.add_argument('--ptm_down_ratio', default=1, type=int)
+    parser.add_argument('--lmds_kernel_size', default=3, type=int)
+    parser.add_argument('--lmds_adapt_ts', default=0.5, type=float)
+    parser.add_argument('--ds_down_ratio', default=1, type=int)
+    parser.add_argument('--ds_crowd_type', default='point', type=str)
 
     args = parser.parse_args()
 
     if args.save is None:
-        args.save = os.path.join(args.output_dir, 'best_model.pth')
+        args.save = os.path.join(args.output_path, 'best_model.pth')
     else:
-        args.save = os.path.join(args.output_dir, args.save)
+        args.save = os.path.join(args.output_path, args.save)
 
     return args
 
@@ -62,11 +69,11 @@ def args_parser():
 def main(args):
 
     device = torch.device(args.device if torch.cuda.is_available() else 'cpu')
-    os.makedirs(args.output_dir, exist_ok=True)
+    os.makedirs(args.output_path, exist_ok=True)
 
     # output with time
     timestr = time_str()
-    work_dir = os.path.join(args.output_dir, f'run_{timestr}'.format(timestr))
+    work_dir = os.path.join(args.output_path, f'run_{timestr}'.format(timestr))
     os.makedirs(work_dir, exist_ok=True)
 
     logger_path = os.path.join(work_dir, 'log')
@@ -101,12 +108,26 @@ def main(args):
     )
 
     # 50% H/V flip + normalize + point -> mask + to_tensor
-    train_albu_transforms = [A.HorizontalFlip(p=0.5), A.VerticalFlip(p=0.5)]
-    train_end_transforms = [Normalize(), PointsToMask(radius=args.radius, num_classes=args.num_classes, squeeze=False, down_ratio=args.ptm_down_ratio)]
+    train_albu_transforms = [
+        A.HorizontalFlip(p=0.5),
+        A.VerticalFlip(p=0.5),
+        A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
+    ]
+    train_end_transforms = [
+        PointsToMask(radius=args.radius,
+                     num_classes=args.num_classes,
+                     squeeze=False, down_ratio=args.ptm_down_ratio)
+    ]
 
     # normalize + point -> mask + to_tensor
-    val_albu_transforms = []
-    val_end_transforms = [Normalize(), PointsToMask(radius=args.radius, num_classes=args.num_classes, squeeze=False, down_ratio=args.ptm_down_ratio)]
+    val_albu_transforms = [
+        A.Normalize(mean=(0.485, 0.456, 0.406),
+                    std=(0.229, 0.224, 0.225))
+    ]
+    val_end_transforms = [
+        DownSample(down_ratio=args.ds_down_ratio,
+                   crowd_type=args.ds_crowd_type)
+    ]
 
     train_dataset = CrowdDataset(
         data_root=args.data_root,
@@ -132,7 +153,7 @@ def main(args):
     logger.info(f'Total parameters: {total_params / 1e6:.2f} M')
     logger.info(f'Trainable parameters: {trainable_params / 1e6:.2f} M')
 
-    # something wrong with  collate_fn?
+    # something wrong with collate_fn?
     train_dataloader = DataLoader(
         dataset = train_dataset,
         batch_size = args.batch_size,
@@ -172,6 +193,7 @@ def main(args):
     train_loss_list = []
     lr_list = []
     map_list = []
+    f1_list = []
 
     for epoch in range(last_epoch, args.epoch):
         logger.info('=' * 60)
@@ -201,6 +223,7 @@ def main(args):
             args=args
         )
         map_list.append(tmp_results["mAP"])
+        f1_list.append(tmp_results["f1_score"])
 
         is_best = False
 
@@ -278,6 +301,11 @@ def main(args):
     if len(map_list) != 0:
         from utils.plot_curve import plot_map
         plot_map(map_list, work_dir)
+
+    if len(f1_list) != 0:
+        from utils.plot_curve import plot_f1
+        plot_f1(f1_list, work_dir)
+
 
 if __name__ == "__main__":
     args = args_parser()

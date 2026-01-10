@@ -130,6 +130,7 @@ class Normalize:
         return image, target
 
 
+# gt points annotation -> /2
 @TRANSFORMS.register()
 class DownSample:
     "DownSample img by a ratio "

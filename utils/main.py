@@ -23,7 +23,11 @@ def train_one_epoch(
         print_freq: int,
         args,
         ) -> float:
-
+    """
+        Img   -> Model        -> dense map  (H×W)
+        GT    -> PointsToMask -> dense mask (H×W)
+        Loss  -> FocalLoss(map, mask)
+    """
     # metric indicators
     first_order_loss = AverageMeter(20)
     second_order_loss = AverageMeter(20)
@@ -86,7 +90,7 @@ def train_one_epoch(
     batch_times.update(batch_end-batch_start)
 
     logger.info(
-        "Val   [Epoch {:^3}/{:<3}] | "
+        "Val: Epoch [{:^3}/{:<3}] | "
         "First {:.3f}({:.3f}) | "
         "Second {:.3f}({:.3f}) | "
         "Total {:.3f}({:.3f}) | "
@@ -110,7 +114,12 @@ def val_one_epoch(
         metrics: object,
         args
         ) -> Union[float, torch.Tensor]:
-
+    """
+        Img    -> Model       -> dense map (H×W)
+        Preds  -> LMDS        -> point list [(y, x), ...]
+        GT     -> points list -> [(y, x), ...](N, 2)
+        Metric -> mAP / recall / precision
+    """
     metrics.flush()
 
     iter_metrics = metrics.copy()
@@ -136,11 +145,15 @@ def val_one_epoch(
         if isinstance(labels, torch.Tensor):
             labels = labels.squeeze(0).tolist()
 
-        points = np.asarray(points)
+        points = np.asarray(points) # (1, N, 2)
 
         # (N, 2, 1) -> (N, 2)
         if points.ndim == 3 and points.shape[-1] == 1:
             points = points.squeeze(-1)
+
+        # downsample (1, N, 2) -> (N, 2)
+        if points.ndim == 3 and points.shape[0] == 1:
+                points = points.squeeze(0)
 
         assert points.ndim == 2 and points.shape[1] == 2, \
             f"Invalid GT points shape: {points.shape}"

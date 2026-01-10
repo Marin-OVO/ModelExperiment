@@ -49,3 +49,20 @@ def plot_map(mAP, save_dir='./'):
         print("successful save mAP curve!")
     except Exception as e:
         print(e)
+
+def plot_f1(f1, save_dir='./'):
+    try:
+        x = list(range(1, len(f1) + 1))
+        plt.plot(x, f1, label='F1-score')
+        plt.xlabel('epoch')
+        plt.ylabel('F1-score')
+        plt.title('Eval F1-score')
+        plt.xlim(0, len(f1))
+        plt.legend(loc='best')
+
+        filename = os.path.join(save_dir, 'F1-score.png')
+        plt.savefig(filename)
+        plt.close()
+        print("successful save F1-score curve!")
+    except Exception as e:
+        print(e)
