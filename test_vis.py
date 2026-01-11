@@ -27,7 +27,7 @@ def args_parser():
     parser = argparse.ArgumentParser(description=__doc__)
 
     parser.add_argument('--data_root', default='data/crowdsat', type=str)
-    parser.add_argument('--checkpoint_path', default='weights/all_sigmoid/best_model.pth', type=str)
+    parser.add_argument('--checkpoint_path', default='weights/no_sigmoid/best_model.pth', type=str)
     parser.add_argument('--output_path', default='vis', type=str)
 
     parser.add_argument('--num_classes', default=2, type=int)
@@ -141,13 +141,17 @@ def vis(args):
                 labels=[1] * len(gt_loc)
             )
 
-            output = model(image)
+            outputs = model(image)
             # outputs = torch.sigmoid(outputs)
 
-            _, locs, _, _ = lmds(output)
+            counts, locs, labels, scores = lmds(outputs)
 
             down_ratio = args.ds_down_ratio
-            pred_loc = [(float(x) * down_ratio, float(y) * down_ratio) for y, x in locs[0]]
+            pred_loc = [
+                (float(x) * down_ratio, float(y) * down_ratio)
+                for (y, x), label in zip(locs[0], labels[0])
+                if label == 1  # only fg
+            ]
             pred = dict(
                 loc=pred_loc,
                 labels=[1] * len(pred_loc)

@@ -31,7 +31,7 @@ def args_parser():
     # path
     parser.add_argument("--img_path", default="red_square.png", type=str)
     parser.add_argument("--output_path", default="vis", type=str)
-    parser.add_argument("--checkpoint_path", default="weights/all_sigmoid/best_model.pth", type=str)
+    parser.add_argument("--checkpoint_path", default="weights/no_sigmoid/best_model.pth", type=str)
 
     # lmds
     parser.add_argument('--lmds_kernel_size', default=3, type=int)
@@ -53,7 +53,7 @@ def vis(args):
     ])
     image_np_ = np.array(image)
     image_np = transform(image=image_np_)['image'] # (H, W, 3)
-    image = torchvision.transforms.ToTensor()(image) # tensor (3, H, W)
+    image = torchvision.transforms.ToTensor()(image_np) # tensor (3, H, W)
     image = image.unsqueeze(0).to(device) # tensor (1, 3, H, W)
 
     # model
@@ -64,6 +64,7 @@ def vis(args):
 
     with torch.no_grad():
         outputs = model(image) # [B, 2, H, W]
+        # outputs = outputs[:, 1:2, :, :]
         # outputs = torch.sigmoid(outputs)
 
     lmds = LMDS(
@@ -71,20 +72,24 @@ def vis(args):
         adapt_ts=args.lmds_adapt_ts
     )
 
-    counts, locs, labels, scores = lmds(outputs)
+    counts, locs, labels, scores = lmds(outputs) # counts: [[fg, bg]]
+
+    locs_pred = np.asarray(locs[0])
 
     draw_img = cv2.cvtColor(image_np_, cv2.COLOR_RGB2BGR)
 
-    for p in locs[0]:
-        y, x = int(p[0]), int(p[1])
-        cv2.circle(draw_img, (x, y), 2, (0, 0, 255), -1)
+    for p, label in zip(locs[0], labels[0]):
+        if label == 1:
+            y, x = int(p[0]), int(p[1])
+            cv2.circle(draw_img, (x, y), 2, (0, 0, 255), -1)
 
     save_path = os.path.join(
         args.output_path,
         os.path.basename(args.img_path)
     )
     cv2.imwrite(save_path, draw_img)
-    print(f"[INFO] Saved to: {save_path}")
+    print(f"[INFO] count: {counts[0][0]}")
+    print(f"[INFO] saved to: {save_path}")
 
 
 if __name__ == '__main__':
