@@ -1,16 +1,39 @@
-# Ignore specific generated / large directories
+# generated directories
 .idea/
 data/
 weights/
 vis/
+.vscode/
 
-# Common Python ignores
+# python
 __pycache__/
 *.py[cod]
-*.pth
 *.log
-*.png
 .env
 
-# VS Code
-.vscode/
+# model files
+*.pkl
+*.pth
+*.pt
+*.ckpt
+
+# images
+*.png
+
+# archives
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# logs and outputs?
+logs/
+output/
+outputs/
+runs/
+tb_logs/
+
+# experiment results
+results/
+checkpoints/
